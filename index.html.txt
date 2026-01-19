@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Nurşan'a Özel Kalp Oyunu 💖</title>
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(135deg, #ffb6c1, #d8b4ff);
+}
+
+#scoreBoard {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Pacifico', cursive;
+  font-size: 28px;
+  color: #fff;
+  text-shadow: 0 0 5px #ff69b4;
+  z-index: 10;
+}
+
+#timer {
+  position: fixed;
+  top: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #fff;
+  font-size: 18px;
+}
+
+.heart {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: red;
+  transform: rotate(45deg);
+  animation: floatUp 3s linear forwards;
+  cursor: pointer;
+}
+
+.heart::before,
+.heart::after {
+  content: '';
+  width: 40px;
+  height: 40px;
+  background: inherit;
+  border-radius: 50%;
+  position: absolute;
+}
+
+.heart::before { top: -20px; left: 0; }
+.heart::after { left: -20px; top: 0; }
+
+@keyframes floatUp {
+  from { transform: translateY(0) rotate(45deg); opacity: 1; }
+  to { transform: translateY(-120px) rotate(45deg); opacity: 0; }
+}
+
+.pop { animation: pop 0.3s ease-out; }
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.5); }
+  100% { transform: scale(0); }
+}
+
+.messageBox {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 20px;
+  border-radius: 20px;
+  font-family: 'Pacifico', cursive;
+  color: #fff;
+  display: none;
+  max-width: 90%;
+  text-align: center;
+}
+
+#modal, #gameOver {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+
+#modalContent, #gameOverContent {
+  background: #fff0f5;
+  padding: 25px;
+  border-radius: 20px;
+  text-align: center;
+  max-width: 320px;
+  font-family: 'Pacifico', cursive;
+}
+
+#modalContent h2 { color: #ff4d88; }
+
+button {
+  margin-top: 15px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 20px;
+  background: #ff69b4;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+#gameOver { display: none; }
+
+@media (max-width: 600px) {
+  .heart { width: 30px; height: 30px; }
+}
+</style>
+</head>
+<body>
+
+<div id="scoreBoard">Puan: 0 / 27</div>
+<div id="timer">Süre: 120</div>
+<div id="poemBox" class="messageBox"></div>
+<div id="complimentBox" class="messageBox"></div>
+
+<div id="modal">
+  <div id="modalContent">
+    <h2>💖 İpucu</h2>
+    <p>Bütün kalpleri topla ve oyunu kazan ❤️</p>
+    <button onclick="startGame()">Başla</button>
+  </div>
+</div>
+
+<div id="gameOver">
+  <div id="gameOverContent">
+    <h2>🎀 Oyun Bitti</h2>
+    <p id="finalScore"></p>
+    <p>Oyunuda kalbimide kazandın birtanem tebriklerr 💋</p>
+  </div>
+</div>
+
+<audio id="popSound">
+  <source src="https://assets.mixkit.co/sfx/preview/mixkit-fast-small-sweep-transition-166.wav" type="audio/mpeg">
+</audio>
+
+<script>
+let score = 0;
+let timeLeft = 120;
+let gameInterval;
+let timerInterval;
+let complimentInterval;
+
+const poems = [
+`Gözlerin geceme doğan ay gibi
+Kalbim sana her gün biraz daha ait
+Adını rüzgara fısıldar geceler
+Nurşan, aşkın en güzel hali sensin`,
+
+`Bir gülüşün bahar getirir bana
+Kalbim sen diye çarpar her an
+Adın geçer dualarımda sessizce
+Sevdam sana yazılmış bir destan`,
+
+`Kalbim seninle tamamlanır
+Ruhum sende huzur bulur
+Adını anınca gülümser kader
+Aşk seninle anlam olur`,
+
+`Gözlerin yıldız, kalbin gökyüzü
+Ben kaybolurum içinde sessizce
+Sevmek senin adınla başlar
+Nurşan, mucizem sensin`,
+
+`Kalbimde bir sır var yalnız sana ait
+Her nefeste adın her düşte davet
+Gözlerinle başlar günümün şarkısı
+Sensiz bir an bile eksik bir hayat`,
+
+`Bir adın var kalbime kazınan
+Her atışta seni anlatan
+Dünyamda tek bir yer var
+O da senin gülüşünle parlayan`,
+
+`Gece olunca yıldızlara sorarım
+Aşk nedir diye usulca ararım
+Cevap tek bir isim olur
+O isim kalbimde yankılanır: Nurşan`,
+
+`Bir dokunuşun bahar gibi
+Bir bakışın umut gibi
+Kalbim sana emanet
+Aşkım sana sonsuz gibi`,
+
+`Zaman dursa bile kalbim durmaz
+Adını anmadan bir an geçmez
+Sevdam sana yazılmış bir kader
+Bu hikaye sensiz bitmez`
+];
+
+const compliments = [
+  "Gülüşün kalbimi eritiyor 💖",
+  "Kalbimin sahibi sensin 😍",
+  "Dünyam sen olunca güzel 🌸",
+  "Aşırı tatlısın 🥰",
+  "Gözlerin efsane 💫"
+];
+
+const colors = ['#ff4d6d', '#ff8fab', '#c77dff', '#ffd6a5', '#ffafcc', '#bde0fe'];
+
+function startGame() {
+  document.getElementById('modal').style.display = 'none';
+  timerInterval = setInterval(updateTimer, 1000);
+  gameInterval = setInterval(createHeart, 700);
+  complimentInterval = setInterval(showCompliment, 5000);
+}
+
+function updateTimer() {
+  timeLeft--;
+  document.getElementById('timer').innerText = `Süre: ${timeLeft}`;
+  if (timeLeft <= 0) endGame();
+}
+
+function createHeart() {
+  if (score >= 27) return;
+
+  const heart = document.createElement('div');
+  heart.className = 'heart';
+
+  const heartColors = ['#ff4d6d', '#ff8fab', '#ffffff'];
+  heart.style.background = heartColors[Math.floor(Math.random()*heartColors.length)];
+
+  const x = Math.random() * (window.innerWidth - 50);
+  const y = Math.random() * (window.innerHeight - 120) + 80;
+
+  heart.style.left = x + 'px';
+  heart.style.top = y + 'px';
+
+  heart.onclick = () => clickHeart(heart);
+
+  document.body.appendChild(heart);
+
+  setTimeout(() => { if (heart.parentNode) heart.remove(); }, 3000);
+}
+
+function clickHeart(heart) {
+  score++;
+  document.getElementById('scoreBoard').innerText = `Puan: ${score} / 27`;
+
+  heart.classList.add('pop');
+  document.getElementById('popSound').play();
+
+  if (score % 3 === 0) showPoem();
+
+  setTimeout(() => heart.remove(), 200);
+
+  if (score >= 27) endGame();
+}
+
+function showPoem() {
+  const box = document.getElementById('poemBox');
+  box.style.background = colors[Math.floor(Math.random()*colors.length)];
+  box.innerText = poems[Math.floor(Math.random() * poems.length)];
+  box.style.display = 'block';
+
+  setTimeout(() => box.style.display = 'none', 4000);
+}
+
+function showCompliment() {
+  if (timeLeft <= 0 || score >= 27) return;
+
+  const box = document.getElementById('complimentBox');
+  box.style.background = colors[Math.floor(Math.random()*colors.length)];
+  box.innerText = compliments[Math.floor(Math.random() * compliments.length)];
+  box.style.display = 'block';
+
+  setTimeout(() => box.style.display = 'none', 2500);
+}
+
+function endGame() {
+  clearInterval(gameInterval);
+  clearInterval(timerInterval);
+  clearInterval(complimentInterval);
+
+  document.getElementById('finalScore').innerText = `Toplam Puanın: ${score}`;
+  document.getElementById('gameOver').style.display = 'flex';
+}
+</script>
+
+</body>
+</html>
