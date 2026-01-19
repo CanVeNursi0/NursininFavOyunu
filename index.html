@@ -64,12 +64,12 @@ body {
   to { transform: translateY(-120px) rotate(45deg); opacity: 0; }
 }
 
-.pop { animation: pop 0.3s ease-out; }
+.pop { animation: pop 0.35s ease-out forwards; }
 
 @keyframes pop {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.5); }
-  100% { transform: scale(0); }
+  0% { transform: scale(1) rotate(45deg); opacity:1; }
+  60% { transform: scale(1.6) rotate(45deg); opacity:0.9; }
+  100% { transform: scale(0) rotate(45deg); opacity:0; }
 }
 
 #overlayMessage {
@@ -186,7 +186,6 @@ let score = 0;
 let timeLeft = 120;
 let gameInterval;
 let timerInterval;
-let complimentInterval;
 let paused = false;
 
 const poems = [
@@ -247,8 +246,7 @@ const compliments = [
 function startGame() {
   document.getElementById('modal').style.display = 'none';
   timerInterval = setInterval(updateTimer, 1000);
-  gameInterval = setInterval(createHeart, 1200); // yavaslatildi
-  complimentInterval = setInterval(triggerCompliment, 5000);
+  gameInterval = setInterval(createHeart, 1500); // daha yavas
 }
 
 function updateTimer() {
@@ -287,18 +285,15 @@ function clickHeart(heart) {
   document.getElementById('scoreBoard').innerText = `Puan: ${score} / 27`;
 
   heart.classList.add('pop');
+  document.getElementById('popSound').currentTime = 0;
   document.getElementById('popSound').play();
 
-  setTimeout(() => heart.remove(), 200);
+  setTimeout(() => heart.remove(), 300);
 
   if (score % 3 === 0) showOverlay(poems[Math.floor(Math.random()*poems.length)]);
+  if (score % 5 === 0) showOverlay(compliments[Math.floor(Math.random()*compliments.length)]);
 
   if (score >= 27) endGame();
-}
-
-function triggerCompliment() {
-  if (paused || score >= 27 || timeLeft <= 0) return;
-  showOverlay(compliments[Math.floor(Math.random()*compliments.length)]);
 }
 
 function showOverlay(text) {
@@ -315,13 +310,11 @@ function resumeGame() {
 function endGame() {
   clearInterval(gameInterval);
   clearInterval(timerInterval);
-  clearInterval(complimentInterval);
 
   document.getElementById('finalScore').innerText = `Toplam Puanın: ${score}`;
   document.getElementById('gameOver').style.display = 'flex';
 }
 
-// continue button
 document.getElementById('continueBtn').onclick = resumeGame;
 </script>
 
