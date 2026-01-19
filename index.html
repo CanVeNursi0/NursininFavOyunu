@@ -4,14 +4,14 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Nurşan'a Özel Kalp Oyunu 💖</title>
-<link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
   overflow: hidden;
-  font-family: Arial, sans-serif;
+  font-family: 'Quicksand', Arial, sans-serif;
   background: linear-gradient(135deg, #ffb6c1, #d8b4ff);
 }
 
@@ -21,7 +21,7 @@ body {
   left: 50%;
   transform: translateX(-50%);
   font-family: 'Pacifico', cursive;
-  font-size: 28px;
+  font-size: 26px;
   color: #fff;
   text-shadow: 0 0 5px #ff69b4;
   z-index: 10;
@@ -29,11 +29,11 @@ body {
 
 #timer {
   position: fixed;
-  top: 50px;
+  top: 48px;
   left: 50%;
   transform: translateX(-50%);
   color: #fff;
-  font-size: 18px;
+  font-size: 17px;
 }
 
 .heart {
@@ -72,18 +72,42 @@ body {
   100% { transform: scale(0); }
 }
 
-.messageBox {
+#overlayMessage {
   position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 12px 20px;
-  border-radius: 20px;
-  font-family: 'Pacifico', cursive;
-  color: #fff;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
   display: none;
-  max-width: 90%;
+  justify-content: center;
+  align-items: center;
+  z-index: 150;
+}
+
+#overlayBox {
+  background: #fff0f6;
+  border-radius: 22px;
+  padding: 22px 20px;
+  max-width: 320px;
+  width: 90%;
   text-align: center;
+  font-family: 'Quicksand', sans-serif;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+#overlayText {
+  white-space: pre-line;
+  font-size: 16px;
+  color: #7a003c;
+  margin-bottom: 15px;
+}
+
+#continueBtn {
+  padding: 10px 22px;
+  border: none;
+  border-radius: 18px;
+  background: #ff5fa2;
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
 }
 
 #modal, #gameOver {
@@ -93,7 +117,7 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 100;
+  z-index: 200;
 }
 
 #modalContent, #gameOverContent {
@@ -102,12 +126,12 @@ body {
   border-radius: 20px;
   text-align: center;
   max-width: 320px;
-  font-family: 'Pacifico', cursive;
+  font-family: 'Quicksand', sans-serif;
 }
 
-#modalContent h2 { color: #ff4d88; }
+#modalContent h2 { color: #ff4d88; font-family: 'Pacifico', cursive; }
 
-button {
+button.mainBtn {
   margin-top: 15px;
   padding: 10px 20px;
   border: none;
@@ -129,14 +153,19 @@ button {
 
 <div id="scoreBoard">Puan: 0 / 27</div>
 <div id="timer">Süre: 120</div>
-<div id="poemBox" class="messageBox"></div>
-<div id="complimentBox" class="messageBox"></div>
 
 <div id="modal">
   <div id="modalContent">
     <h2>💖 İpucu</h2>
     <p>Bütün kalpleri topla ve oyunu kazan ❤️</p>
-    <button onclick="startGame()">Başla</button>
+    <button class="mainBtn" onclick="startGame()">Başla</button>
+  </div>
+</div>
+
+<div id="overlayMessage">
+  <div id="overlayBox">
+    <div id="overlayText"></div>
+    <button id="continueBtn">Devam et</button>
   </div>
 </div>
 
@@ -158,6 +187,7 @@ let timeLeft = 120;
 let gameInterval;
 let timerInterval;
 let complimentInterval;
+let paused = false;
 
 const poems = [
 `Gözlerin geceme doğan ay gibi
@@ -214,23 +244,22 @@ const compliments = [
   "Gözlerin efsane 💫"
 ];
 
-const colors = ['#ff4d6d', '#ff8fab', '#c77dff', '#ffd6a5', '#ffafcc', '#bde0fe'];
-
 function startGame() {
   document.getElementById('modal').style.display = 'none';
   timerInterval = setInterval(updateTimer, 1000);
-  gameInterval = setInterval(createHeart, 700);
-  complimentInterval = setInterval(showCompliment, 5000);
+  gameInterval = setInterval(createHeart, 1200); // yavaslatildi
+  complimentInterval = setInterval(triggerCompliment, 5000);
 }
 
 function updateTimer() {
+  if (paused) return;
   timeLeft--;
   document.getElementById('timer').innerText = `Süre: ${timeLeft}`;
   if (timeLeft <= 0) endGame();
 }
 
 function createHeart() {
-  if (score >= 27) return;
+  if (paused || score >= 27) return;
 
   const heart = document.createElement('div');
   heart.className = 'heart';
@@ -252,37 +281,35 @@ function createHeart() {
 }
 
 function clickHeart(heart) {
+  if (paused) return;
+
   score++;
   document.getElementById('scoreBoard').innerText = `Puan: ${score} / 27`;
 
   heart.classList.add('pop');
   document.getElementById('popSound').play();
 
-  if (score % 3 === 0) showPoem();
-
   setTimeout(() => heart.remove(), 200);
+
+  if (score % 3 === 0) showOverlay(poems[Math.floor(Math.random()*poems.length)]);
 
   if (score >= 27) endGame();
 }
 
-function showPoem() {
-  const box = document.getElementById('poemBox');
-  box.style.background = colors[Math.floor(Math.random()*colors.length)];
-  box.innerText = poems[Math.floor(Math.random() * poems.length)];
-  box.style.display = 'block';
-
-  setTimeout(() => box.style.display = 'none', 4000);
+function triggerCompliment() {
+  if (paused || score >= 27 || timeLeft <= 0) return;
+  showOverlay(compliments[Math.floor(Math.random()*compliments.length)]);
 }
 
-function showCompliment() {
-  if (timeLeft <= 0 || score >= 27) return;
+function showOverlay(text) {
+  paused = true;
+  document.getElementById('overlayText').innerText = text;
+  document.getElementById('overlayMessage').style.display = 'flex';
+}
 
-  const box = document.getElementById('complimentBox');
-  box.style.background = colors[Math.floor(Math.random()*colors.length)];
-  box.innerText = compliments[Math.floor(Math.random() * compliments.length)];
-  box.style.display = 'block';
-
-  setTimeout(() => box.style.display = 'none', 2500);
+function resumeGame() {
+  paused = false;
+  document.getElementById('overlayMessage').style.display = 'none';
 }
 
 function endGame() {
@@ -293,6 +320,9 @@ function endGame() {
   document.getElementById('finalScore').innerText = `Toplam Puanın: ${score}`;
   document.getElementById('gameOver').style.display = 'flex';
 }
+
+// continue button
+document.getElementById('continueBtn').onclick = resumeGame;
 </script>
 
 </body>
